@@ -34,6 +34,7 @@ def test_empty_question_shows_error_and_session_continues(monkeypatch, capsys, f
     assert main() == 0
     out = capsys.readouterr().out
     assert "Error: Please type a question." in out
+    assert "Thinking..." not in out
     assert "Bye." in out
     assert fake_ollama.last_request is None
 
