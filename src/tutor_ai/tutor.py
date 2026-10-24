@@ -22,8 +22,7 @@ def clean_question(question: str) -> str:
         raise InvalidQuestionError("Please type a question.")
     if len(cleaned) > MAX_QUESTION_CHARS:
         raise InvalidQuestionError(
-            f"The question is too long ({len(cleaned)} characters, "
-            f"maximum {MAX_QUESTION_CHARS})."
+            f"The question is too long ({len(cleaned)} characters, maximum {MAX_QUESTION_CHARS})."
         )
     return cleaned
 

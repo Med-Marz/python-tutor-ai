@@ -1,5 +1,3 @@
-import pytest
-
 from tutor_ai.main import main
 
 
@@ -10,7 +8,7 @@ def feed(monkeypatch, lines):
         try:
             return next(it)
         except StopIteration:
-            raise EOFError
+            raise EOFError from None
 
     monkeypatch.setattr("builtins.input", fake_input)
 
