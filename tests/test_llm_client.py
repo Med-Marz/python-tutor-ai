@@ -74,3 +74,8 @@ def test_invalid_response(fake_ollama, body):
     fake_ollama.body = body
     with pytest.raises(InvalidResponseError):
         ask("hi")
+
+
+def test_ask_sends_system_prompt(fake_ollama):
+    ask("hi", "Be brief.")
+    assert fake_ollama.last_request["messages"][0] == {"role": "system", "content": "Be brief."}

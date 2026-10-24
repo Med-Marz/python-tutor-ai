@@ -5,7 +5,6 @@ import httpx
 
 URL = "http://127.0.0.1:11434/api/chat"
 MODEL = "llama3.2:3b"
-SYSTEM_PROMPT = "You are a Python tutor. Answer in at most 3 short sentences."
 TIMEOUT = 120
 
 
@@ -41,13 +40,14 @@ class Reply:
     eval_seconds: float
 
 
-def ask(question: str) -> Reply:
+def ask(question: str, system_prompt: str | None = None) -> Reply:
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": question})
     payload = {
         "model": MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question},
-        ],
+        "messages": messages,
         "stream": False,
         "options": {"temperature": 0, "num_predict": 100},
     }
