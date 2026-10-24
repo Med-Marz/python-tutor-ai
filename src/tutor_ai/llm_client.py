@@ -6,6 +6,7 @@ import httpx
 URL = "http://127.0.0.1:11434/api/chat"
 MODEL = "llama3.2:3b"
 SYSTEM_PROMPT = "You are a Python tutor. Answer in at most 3 short sentences."
+TIMEOUT = 120
 
 
 class LLMError(Exception):
@@ -52,7 +53,7 @@ def ask(question: str) -> Reply:
     }
     start = time.perf_counter()
     try:
-        response = httpx.post(URL, json=payload, timeout=120)
+        response = httpx.post(URL, json=payload, timeout=TIMEOUT)
     except httpx.TimeoutException as exc:
         raise LLMTimeoutError("The model took too long to answer.") from exc
     except httpx.TransportError as exc:
