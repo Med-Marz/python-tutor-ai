@@ -12,10 +12,16 @@ dependencies = ["httpx"]
 where = ["src"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "ruff"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [project.scripts]
 tutor-ai = "tutor_ai.main:main"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
