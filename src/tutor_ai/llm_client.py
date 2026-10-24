@@ -76,17 +76,3 @@ def ask(question: str, system_prompt: str | None = None) -> Reply:
         raise InvalidResponseError("The model returned an empty answer.")
 
     return Reply(text=text, seconds=seconds, eval_count=eval_count, eval_seconds=eval_seconds)
-
-
-def main():
-    try:
-        reply = ask("What is a tuple?")
-    except LLMError as err:
-        print(f"Error: {err}")
-        raise SystemExit(1)
-    print(reply.text)
-    print(f"({reply.seconds:.1f} s total, {reply.eval_count} tokens in {reply.eval_seconds:.1f} s)")
-
-
-if __name__ == "__main__":
-    main()
