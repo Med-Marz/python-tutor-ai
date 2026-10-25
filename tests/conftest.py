@@ -5,8 +5,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-import tutor_ai.llm_client as client
-
 GOOD_BODY = json.dumps(
     {
         "message": {"role": "assistant", "content": "A tuple is immutable."},
@@ -44,13 +42,24 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
 
+@pytest.fixture(autouse=True)
+def clean_environment(monkeypatch):
+    for name in (
+        "TUTOR_OLLAMA_URL",
+        "TUTOR_MODEL",
+        "TUTOR_CONNECT_TIMEOUT",
+        "TUTOR_READ_TIMEOUT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 @pytest.fixture
 def fake_ollama(monkeypatch):
     fake = FakeOllama()
     server = HTTPServer(("127.0.0.1", 0), _Handler)
     server.fake = fake
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    monkeypatch.setattr(client, "URL", f"http://127.0.0.1:{server.server_port}/api/chat")
+    monkeypatch.setenv("TUTOR_OLLAMA_URL", f"http://127.0.0.1:{server.server_port}")
     yield fake
     server.shutdown()
     server.server_close()

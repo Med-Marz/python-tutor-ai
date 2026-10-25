@@ -59,3 +59,9 @@ def test_ctrl_c_ends_the_session(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", interrupt)
     assert main() == 0
     assert "Bye." in capsys.readouterr().out
+
+
+def test_invalid_setting_stops_startup(monkeypatch, capsys):
+    monkeypatch.setenv("TUTOR_READ_TIMEOUT", "abc")
+    assert main() == 1
+    assert "TUTOR_READ_TIMEOUT" in capsys.readouterr().out
