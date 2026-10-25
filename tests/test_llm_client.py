@@ -1,9 +1,9 @@
 import json
 import socket
 
+import httpx
 import pytest
 
-import tutor_ai.llm_client as client
 from tutor_ai.llm_client import (
     InvalidResponseError,
     LLMHTTPError,
@@ -25,23 +25,43 @@ def test_ask_returns_reply(fake_ollama):
 def test_ask_sends_model_and_question(fake_ollama):
     ask("What is a list?")
     sent = fake_ollama.last_request
-    assert sent["model"] == client.MODEL
+    assert sent["model"] == "llama3.2:3b"
     assert sent["messages"][-1] == {"role": "user", "content": "What is a list?"}
     assert sent["stream"] is False
+
+
+def test_ask_uses_model_from_settings(fake_ollama, monkeypatch):
+    monkeypatch.setenv("TUTOR_MODEL", "gemma3:4b")
+    ask("hi")
+    assert fake_ollama.last_request["model"] == "gemma3:4b"
+
+
+def test_ask_sends_system_prompt(fake_ollama):
+    ask("hi", "Be brief.")
+    assert fake_ollama.last_request["messages"][0] == {"role": "system", "content": "Be brief."}
 
 
 def test_server_down(monkeypatch):
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
-    monkeypatch.setattr(client, "URL", f"http://127.0.0.1:{port}/api/chat")
+    monkeypatch.setenv("TUTOR_OLLAMA_URL", f"http://127.0.0.1:{port}")
     with pytest.raises(LLMUnavailableError):
+        ask("hi")
+
+
+def test_connect_timeout_means_unavailable(monkeypatch):
+    def fake_post(*args, **kwargs):
+        raise httpx.ConnectTimeout("too slow")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    with pytest.raises(LLMUnavailableError, match="timed out"):
         ask("hi")
 
 
 def test_timeout(fake_ollama, monkeypatch):
     fake_ollama.delay = 1
-    monkeypatch.setattr(client, "TIMEOUT", 0.3)
+    monkeypatch.setenv("TUTOR_READ_TIMEOUT", "0.3")
     with pytest.raises(LLMTimeoutError):
         ask("hi")
 
@@ -74,8 +94,3 @@ def test_invalid_response(fake_ollama, body):
     fake_ollama.body = body
     with pytest.raises(InvalidResponseError):
         ask("hi")
-
-
-def test_ask_sends_system_prompt(fake_ollama):
-    ask("hi", "Be brief.")
-    assert fake_ollama.last_request["messages"][0] == {"role": "system", "content": "Be brief."}

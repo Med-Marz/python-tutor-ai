@@ -1,3 +1,4 @@
+from tutor_ai.config import Settings
 from tutor_ai.llm_client import Reply, ask
 
 MAX_QUESTION_CHARS = 2000
@@ -27,5 +28,5 @@ def clean_question(question: str) -> str:
     return cleaned
 
 
-def answer(question: str) -> Reply:
-    return ask(clean_question(question), SYSTEM_PROMPT)
+def answer(question: str, settings: Settings | None = None) -> Reply:
+    return ask(clean_question(question), SYSTEM_PROMPT, settings)

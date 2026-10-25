@@ -3,9 +3,7 @@ from dataclasses import dataclass
 
 import httpx
 
-URL = "http://127.0.0.1:11434/api/chat"
-MODEL = "llama3.2:3b"
-TIMEOUT = 120
+from tutor_ai.config import Settings, load_settings
 
 
 class LLMError(Exception):
@@ -40,20 +38,30 @@ class Reply:
     eval_seconds: float
 
 
-def ask(question: str, system_prompt: str | None = None) -> Reply:
+def ask(
+    question: str,
+    system_prompt: str | None = None,
+    settings: Settings | None = None,
+) -> Reply:
+    settings = settings or load_settings()
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": question})
     payload = {
-        "model": MODEL,
+        "model": settings.model,
         "messages": messages,
         "stream": False,
         "options": {"temperature": 0, "num_predict": 100},
     }
+    url = f"{settings.base_url}/api/chat"
+    timeout = httpx.Timeout(settings.read_timeout, connect=settings.connect_timeout)
+
     start = time.perf_counter()
     try:
-        response = httpx.post(URL, json=payload, timeout=TIMEOUT)
+        response = httpx.post(url, json=payload, timeout=timeout)
+    except httpx.ConnectTimeout as exc:
+        raise LLMUnavailableError("Cannot reach Ollama: the connection timed out.") from exc
     except httpx.TimeoutException as exc:
         raise LLMTimeoutError("The model took too long to answer.") from exc
     except httpx.TransportError as exc:
@@ -61,7 +69,9 @@ def ask(question: str, system_prompt: str | None = None) -> Reply:
     seconds = time.perf_counter() - start
 
     if response.status_code == 404:
-        raise ModelNotFoundError(f"Model '{MODEL}' not found. Try: ollama pull {MODEL}")
+        raise ModelNotFoundError(
+            f"Model '{settings.model}' not found. Try: ollama pull {settings.model}"
+        )
     if response.status_code != 200:
         raise LLMHTTPError(f"Ollama returned HTTP {response.status_code}.")
 
