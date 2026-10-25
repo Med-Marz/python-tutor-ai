@@ -1,4 +1,5 @@
 import json
+import logging
 import socket
 
 import httpx
@@ -94,3 +95,23 @@ def test_invalid_response(fake_ollama, body):
     fake_ollama.body = body
     with pytest.raises(InvalidResponseError):
         ask("hi")
+
+
+def test_success_is_logged_without_the_question_text(fake_ollama, caplog):
+    caplog.set_level(logging.INFO, logger="tutor_ai")
+    ask("What is a tuple?")
+    assert "request ok" in caplog.text
+    assert "eval_count=60" in caplog.text
+    assert "tokens_per_s=6.00" in caplog.text
+    assert "question_chars=16" in caplog.text
+    assert "What is a tuple?" not in caplog.text
+
+
+def test_failure_is_logged_without_the_question_text(fake_ollama, caplog):
+    fake_ollama.status = 500
+    caplog.set_level(logging.WARNING, logger="tutor_ai")
+    with pytest.raises(LLMHTTPError):
+        ask("my secret question")
+    assert "request failed" in caplog.text
+    assert "error=LLMHTTPError" in caplog.text
+    assert "my secret question" not in caplog.text

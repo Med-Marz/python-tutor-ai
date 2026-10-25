@@ -1,9 +1,12 @@
+import logging
 import time
 from dataclasses import dataclass
 
 import httpx
 
 from tutor_ai.config import Settings, load_settings
+
+logger = logging.getLogger(__name__)
 
 
 class LLMError(Exception):
@@ -38,12 +41,7 @@ class Reply:
     eval_seconds: float
 
 
-def ask(
-    question: str,
-    system_prompt: str | None = None,
-    settings: Settings | None = None,
-) -> Reply:
-    settings = settings or load_settings()
+def _call_model(question: str, system_prompt: str | None, settings: Settings) -> Reply:
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
@@ -86,3 +84,35 @@ def ask(
         raise InvalidResponseError("The model returned an empty answer.")
 
     return Reply(text=text, seconds=seconds, eval_count=eval_count, eval_seconds=eval_seconds)
+
+
+def ask(
+    question: str,
+    system_prompt: str | None = None,
+    settings: Settings | None = None,
+) -> Reply:
+    settings = settings or load_settings()
+    start = time.perf_counter()
+    try:
+        reply = _call_model(question, system_prompt, settings)
+    except LLMError as exc:
+        logger.warning(
+            "request failed model=%s error=%s seconds=%.2f question_chars=%d",
+            settings.model,
+            type(exc).__name__,
+            time.perf_counter() - start,
+            len(question),
+        )
+        raise
+    tokens_per_s = reply.eval_count / reply.eval_seconds if reply.eval_seconds > 0 else 0.0
+    logger.info(
+        "request ok model=%s seconds=%.2f eval_count=%d eval_seconds=%.2f "
+        "tokens_per_s=%.2f question_chars=%d",
+        settings.model,
+        reply.seconds,
+        reply.eval_count,
+        reply.eval_seconds,
+        tokens_per_s,
+        len(question),
+    )
+    return reply
