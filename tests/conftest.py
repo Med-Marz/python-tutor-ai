@@ -1,7 +1,9 @@
 import json
+import logging
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from logging.handlers import RotatingFileHandler
 
 import pytest
 
@@ -43,7 +45,7 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 @pytest.fixture(autouse=True)
-def clean_environment(monkeypatch):
+def clean_environment(monkeypatch, tmp_path):
     for name in (
         "TUTOR_OLLAMA_URL",
         "TUTOR_MODEL",
@@ -51,6 +53,13 @@ def clean_environment(monkeypatch):
         "TUTOR_READ_TIMEOUT",
     ):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("TUTOR_LOG_FILE", str(tmp_path / "test.log"))
+    yield
+    logger = logging.getLogger("tutor_ai")
+    for handler in list(logger.handlers):
+        if isinstance(handler, RotatingFileHandler):
+            logger.removeHandler(handler)
+            handler.close()
 
 
 @pytest.fixture

@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from tutor_ai.main import main
 
 
@@ -65,3 +68,20 @@ def test_invalid_setting_stops_startup(monkeypatch, capsys):
     monkeypatch.setenv("TUTOR_READ_TIMEOUT", "abc")
     assert main() == 1
     assert "TUTOR_READ_TIMEOUT" in capsys.readouterr().out
+
+
+def test_requests_are_logged_to_the_file(monkeypatch, fake_ollama):
+    feed(monkeypatch, ["What is a tuple?", "exit"])
+    assert main() == 0
+    text = Path(os.environ["TUTOR_LOG_FILE"]).read_text(encoding="utf-8")
+    assert "request ok" in text
+    assert "What is a tuple?" not in text
+
+
+def test_unwritable_log_file_does_not_stop_the_app(monkeypatch, capsys, tmp_path):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a folder")
+    monkeypatch.setenv("TUTOR_LOG_FILE", str(blocker / "app.log"))
+    feed(monkeypatch, ["exit"])
+    assert main() == 0
+    assert "Warning: cannot write the log file" in capsys.readouterr().out

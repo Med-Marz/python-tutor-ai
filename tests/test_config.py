@@ -55,3 +55,8 @@ def test_invalid_numbers_are_rejected(name, value):
 def test_reads_the_real_environment_by_default(monkeypatch):
     monkeypatch.setenv("TUTOR_MODEL", "gemma3:4b")
     assert load_settings().model == "gemma3:4b"
+
+
+def test_log_file_default_and_override():
+    assert load_settings({}).log_file == "~/.local/state/tutor-ai/tutor-ai.log"
+    assert load_settings({"TUTOR_LOG_FILE": "/tmp/x.log"}).log_file == "/tmp/x.log"
