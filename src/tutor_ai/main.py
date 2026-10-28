@@ -1,5 +1,6 @@
 from tutor_ai.config import ConfigError, load_settings
 from tutor_ai.llm_client import LLMError
+from tutor_ai.logs import setup_logging
 from tutor_ai.tutor import InvalidQuestionError, answer, clean_question
 
 EXIT_COMMAND = "exit"
@@ -11,6 +12,11 @@ def main() -> int:
     except ConfigError as err:
         print(f"Error: {err}")
         return 1
+
+    try:
+        setup_logging(settings.log_file)
+    except OSError as err:
+        print(f"Warning: cannot write the log file ({err}). Continuing without logs.")
 
     print(f"Python Tutor AI ({settings.model}).")
     print(f"Type your question, or '{EXIT_COMMAND}' to quit.")
